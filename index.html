@@ -1,1 +1,1762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Biology Virtual Laboratory Portal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace']
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .chromatogram-peak {
+            transition: all 0.2s ease-in-out;
+        }
+        .chromatogram-peak:hover {
+            opacity: 0.8;
+            cursor: pointer;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .glass-panel { background: none !important; border: none !important; color: black !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 overflow-x-hidden selection:bg-teal-500 selection:text-white">
 
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-4 lg:px-8 py-3 flex items-center justify-between no-print">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-teal-500/20">
+                <i class="fa-solid font-bold fa-dna"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight tracking-tight text-white flex items-center gap-2">
+                    Molecular Lab Portal
+                    <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20">v2.5</span>
+                </h1>
+                <p class="text-xs text-slate-400">Department of Biological Sciences & Molecular Biotechnology</p>
+            </div>
+        </div>
+
+        <!-- Right Side Header Controls -->
+        <div class="flex items-center space-x-3">
+            <!-- Mode Selector (Student vs Instructor) -->
+            <div class="bg-slate-800 p-1 rounded-lg border border-slate-700/80 flex items-center text-xs">
+                <button id="btn-mode-student" onclick="setRole('student')" class="px-3 py-1.5 rounded-md font-medium transition-all bg-teal-600 text-white shadow">
+                    <i class="fa-solid fa-user-graduate mr-1.5"></i> Student View
+                </button>
+                <button id="btn-mode-instructor" onclick="setRole('instructor')" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition-all">
+                    <i class="fa-solid fa-user-gear mr-1.5"></i> Instructor Hub
+                </button>
+            </div>
+
+            <!-- Global Progress Tracker -->
+            <div class="hidden md:flex items-center space-x-3 px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50">
+                <div class="text-xs text-right">
+                    <div class="text-slate-400">Course Progress</div>
+                    <div class="font-bold text-teal-400" id="global-progress-text">0 / 10 Completed</div>
+                </div>
+                <div class="w-16 bg-slate-700 h-2 rounded-full overflow-hidden">
+                    <div id="global-progress-bar" class="bg-teal-500 h-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <!-- Export / Save Report Button -->
+            <button onclick="openNotebookModal()" class="px-3 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-lg flex items-center gap-2 transition">
+                <i class="fa-solid fa-book-bookmark text-teal-400"></i>
+                <span>Lab Notebook</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <div class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Left Sidebar - Practical List -->
+        <aside id="sidebar" class="w-80 border-r border-slate-800 bg-slate-900/50 flex flex-col transition-all duration-300 z-30 shrink-0 no-print">
+            <!-- Sidebar Header & Search -->
+            <div class="p-4 border-b border-slate-800 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Practicals Modules</span>
+                    <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-400" id="practicals-count">10 Practicals</span>
+                </div>
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+                    <input type="text" id="search-input" onkeyup="filterPracticals()" placeholder="Search practicals or protocols..." 
+                           class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-lg focus:outline-none focus:border-teal-500 text-slate-200 placeholder-slate-500">
+                </div>
+            </div>
+
+            <!-- Practicals Navigation List -->
+            <nav class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1" id="practical-list">
+                <!-- Javascript will populate 10 practicals dynamically -->
+            </nav>
+
+            <!-- Student Profile Badge Footer -->
+            <div class="p-3 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-teal-400">
+                        ST
+                    </div>
+                    <div>
+                        <div class="font-medium text-slate-200" id="user-display-name">Student Account</div>
+                        <div class="text-[10px] text-slate-500">ID: MB-2026-8804</div>
+                    </div>
+                </div>
+                <button onclick="resetAllProgress()" title="Reset local submission data" class="text-slate-500 hover:text-red-400 transition p-1.5">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Center Active Practical Viewport -->
+        <main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-slate-950" id="main-viewport">
+            
+            <!-- Active Practical Title Banner -->
+            <div id="practical-header" class="border-b border-slate-800 bg-slate-900/40 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span id="active-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/30">
+                            Practical 1
+                        </span>
+                        <span id="active-category" class="text-xs text-slate-400">
+                            Core Laboratory Skills
+                        </span>
+                    </div>
+                    <h2 id="active-title" class="text-2xl font-bold text-white tracking-tight">
+                        Keeping A Laboratory Notebook
+                    </h2>
+                    <p id="active-description" class="text-sm text-slate-400 mt-1 max-w-3xl">
+                        Master the standards of maintaining a legally defensible, clear, and reproducible molecular biology laboratory notebook according to Good Laboratory Practice (GLP).
+                    </p>
+                </div>
+
+                <!-- Practical Quick Action Buttons -->
+                <div class="flex items-center gap-2 self-start md:self-auto">
+                    <button id="btn-mark-complete" onclick="togglePracticalCompletion()" class="px-4 py-2 rounded-lg text-xs font-medium bg-slate-800 border border-slate-700 hover:border-teal-500 text-slate-200 flex items-center gap-2 transition">
+                        <i id="completion-icon" class="fa-regular fa-circle text-slate-400"></i>
+                        <span id="completion-label">Mark Completed</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Navigation Bar -->
+            <div class="border-b border-slate-800 bg-slate-900/80 px-6 flex space-x-6 text-sm font-medium no-print">
+                <button onclick="switchTab('tab-video')" id="tab-btn-video" class="py-3 border-b-2 border-teal-500 text-teal-400 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-play-circle"></i> Practical Video & Protocol
+                </button>
+                <button onclick="switchTab('tab-simulation')" id="tab-btn-simulation" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-flask-vial"></i> Virtual Lab Simulator
+                </button>
+                <button onclick="switchTab('tab-prelab')" id="tab-btn-prelab" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-clipboard-question"></i> Pre-Lab Quiz
+                </button>
+                <button onclick="switchTab('tab-postlab')" id="tab-btn-postlab" class="py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition">
+                    <i class="fa-solid fa-file-pen"></i> Post-Lab Assessment
+                </button>
+            </div>
+
+            <!-- Dynamic Tab Content Body -->
+            <div class="p-6 flex-1">
+
+                <!-- TAB 1: Video Tutorial & Protocol -->
+                <div id="tab-video" class="tab-content space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        
+                        <!-- Video Embed Section (2 Columns) -->
+                        <div class="lg:col-span-2 space-y-4">
+                            <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800 shadow-xl">
+                                <!-- Video Header Control -->
+                                <div class="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                                    <span class="flex items-center gap-2 font-medium text-slate-200">
+                                        <i class="fa-solid fa-video text-teal-400"></i> Video Demonstration
+                                    </span>
+                                    <span id="video-updated-tag" class="text-[11px] text-teal-400/80 bg-teal-500/10 px-2 py-0.5 rounded">Weekly Lecture & Demonstration</span>
+                                </div>
+                                
+                                <!-- Video Player Frame / Container -->
+                                <div class="relative bg-black aspect-video flex items-center justify-center overflow-hidden" id="video-frame-container">
+                                    <!-- Video iframe or fallback player placeholder -->
+                                    <iframe id="video-iframe" class="w-full h-full border-0" 
+                                            src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" 
+                                            title="Practical Video Tutorial" allowfullscreen></iframe>
+                                </div>
+                            </div>
+
+                            <!-- Instructor Note Box -->
+                            <div id="instructor-note-card" class="p-4 rounded-xl bg-slate-900/60 border border-teal-500/20 text-xs space-y-1">
+                                <div class="font-semibold text-teal-400 flex items-center gap-2">
+                                    <i class="fa-solid fa-chalkboard-user"></i> Instructor's Note for this Practical
+                                </div>
+                                <p id="instructor-note-text" class="text-slate-300">
+                                    Please watch the video carefully before entering the lab. Pay special attention to the safety guidelines and record keeping conventions shown at 03:45.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Protocol Quick Reference Sidebar (1 Column) -->
+                        <div class="space-y-4">
+                            <div class="glass-panel rounded-2xl p-5 border border-slate-800 space-y-4">
+                                <h3 class="font-bold text-sm text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                                    <i class="fa-solid fa-list-check text-teal-400"></i> Key Learning Objectives
+                                </h3>
+                                <ul id="learning-objectives-list" class="space-y-2 text-xs text-slate-300 list-disc list-inside">
+                                    <!-- Populated dynamically -->
+                                </ul>
+
+                                <h3 class="font-bold text-sm text-white flex items-center gap-2 border-b border-slate-800 pt-2 pb-3">
+                                    <i class="fa-solid fa-vial-circle-check text-teal-400"></i> Key Reagents & Equipment
+                                </h3>
+                                <div id="reagents-tags" class="flex flex-wrap gap-1.5">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step-by-Step Lab Protocol Text -->
+                    <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                            <h3 class="font-bold text-base text-white flex items-center gap-2">
+                                <i class="fa-solid fa-book-open text-teal-400"></i> Experimental Protocol & Procedures
+                            </h3>
+                            <button onclick="window.print()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg flex items-center gap-1.5 border border-slate-700">
+                                <i class="fa-solid fa-print"></i> Print Manual
+                            </button>
+                        </div>
+                        
+                        <div id="protocol-content" class="text-sm text-slate-300 space-y-4 leading-relaxed">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Interactive Virtual Lab Simulator -->
+                <div id="tab-simulation" class="tab-content hidden space-y-6">
+                    <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-white flex items-center gap-2" id="sim-title">
+                                    <i class="fa-solid fa-microscope text-teal-400"></i> Virtual Interactive Workbench
+                                </h3>
+                                <p class="text-xs text-slate-400" id="sim-subtitle">
+                                    Interactive simulation for practical parameter testing and calculations.
+                                </p>
+                            </div>
+                            <span class="text-xs px-2.5 py-1 bg-teal-500/10 text-teal-400 rounded-full border border-teal-500/20 font-mono">Interactive Lab Bench</span>
+                        </div>
+
+                        <!-- Dynamic Simulator Mounting Area -->
+                        <div id="simulator-container" class="min-h-[380px] p-6 bg-slate-900/80 rounded-xl border border-slate-800 flex flex-col items-center justify-center">
+                            <!-- Simulator widgets generated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: Pre-Lab Quiz -->
+                <div id="tab-prelab" class="tab-content hidden space-y-6">
+                    <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-6 max-w-4xl mx-auto">
+                        <div class="border-b border-slate-800 pb-4 flex items-center justify-between">
+                            <div>
+                                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-clipboard-question text-teal-400"></i> Pre-Laboratory Assessment
+                                </h3>
+                                <p class="text-xs text-slate-400">
+                                    Complete this mandatory quiz prior to beginning your practical session.
+                                </p>
+                            </div>
+                            <div id="prelab-score-badge" class="hidden text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                Score: <span id="prelab-score-val">0</span>/100
+                            </div>
+                        </div>
+
+                        <!-- Quiz Form Container -->
+                        <form id="prelab-form" class="space-y-6" onsubmit="event.preventDefault(); submitPrelabQuiz();">
+                            <div id="prelab-questions-list" class="space-y-6">
+                                <!-- Populated dynamically -->
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-800 flex justify-end gap-3">
+                                <button type="submit" class="px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600 text-slate-950 font-semibold text-sm shadow-lg shadow-teal-500/20 transition">
+                                    Submit Pre-Lab Quiz Answers
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 4: Post-Lab Assessment -->
+                <div id="tab-postlab" class="tab-content hidden space-y-6">
+                    <div class="glass-panel rounded-2xl p-6 border border-slate-800 space-y-6 max-w-4xl mx-auto">
+                        <div class="border-b border-slate-800 pb-4 flex items-center justify-between">
+                            <div>
+                                <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-file-pen text-teal-400"></i> Post-Lab Experimental Report & Data Analysis
+                                </h3>
+                                <p class="text-xs text-slate-400">
+                                    Analyze experimental results, answer critical thinking questions, and submit for instructor evaluation.
+                                </p>
+                            </div>
+                            <span id="postlab-status-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                                Status: Not Submitted
+                            </span>
+                        </div>
+
+                        <!-- Postlab Submission Form -->
+                        <form id="postlab-form" class="space-y-6" onsubmit="event.preventDefault(); submitPostLabReport();">
+                            <div id="postlab-questions-list" class="space-y-6">
+                                <!-- Populated dynamically -->
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-800 flex items-center justify-between">
+                                <span class="text-xs text-slate-500"><i class="fa-solid fa-shield-halved mr-1"></i> Submissions are saved locally to your device state.</span>
+                                <button type="submit" class="px-6 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-semibold text-sm shadow-lg shadow-teal-600/20 transition flex items-center gap-2">
+                                    <i class="fa-solid fa-paper-plane"></i> Save & Submit Post-Lab Assignment
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- INSTRUCTOR HUB MODAL (Only visible in Instructor Mode) -->
+    <div id="instructor-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-user-gear"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-base">Instructor Control Center</h3>
+                        <p class="text-xs text-slate-400">Manage Weekly Videos, Lab Questions, and View Class Submissions</p>
+                    </div>
+                </div>
+                <button onclick="closeInstructorModal()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content Body -->
+            <div class="p-6 overflow-y-auto custom-scrollbar space-y-6 flex-1 text-xs">
+                
+                <!-- Video Update Form -->
+                <div class="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+                    <h4 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-video text-teal-400"></i> Update Practical Video Link
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Select Practical Module</label>
+                            <select id="inst-practical-select" onchange="loadInstructorPracticalData()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-teal-500">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Video Embed URL (YouTube/Vimeo/MP4)</label>
+                            <input type="text" id="inst-video-url" placeholder="https://www.youtube.com/embed/..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-teal-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 mb-1">Instructor Announcements / Weekly Note</label>
+                        <textarea id="inst-note-input" rows="2" placeholder="Write specific guidance for this week's experiment..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 focus:outline-none focus:border-teal-500"></textarea>
+                    </div>
+                    <button onclick="saveInstructorVideoConfig()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-medium text-xs transition">
+                        Update Video & Announcement
+                    </button>
+                </div>
+
+                <!-- Class Roster & Submissions View -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-chart-user text-teal-400"></i> Student Submissions Log
+                        </h4>
+                        <button onclick="exportGradeRoster()" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700 text-xs">
+                            <i class="fa-solid fa-file-csv mr-1"></i> Export Grades CSV
+                        </button>
+                    </div>
+
+                    <div class="border border-slate-800 rounded-xl overflow-hidden">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-900 text-slate-400 border-b border-slate-800 font-semibold">
+                                    <th class="p-3">Practical Title</th>
+                                    <th class="p-3">Pre-Lab Grade</th>
+                                    <th class="p-3">Post-Lab Status</th>
+                                    <th class="p-3">Completed On</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inst-submission-rows" class="divide-y divide-slate-800/60 bg-slate-950/40 text-slate-300">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- DIGITAL LABORATORY NOTEBOOK MODAL -->
+    <div id="notebook-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900 no-print">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-lg bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-book-bookmark"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-base">Digital Laboratory Notebook</h3>
+                        <p class="text-xs text-slate-400">GLP-Compliant Experimental Records & Observations</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-3 py-1.5 text-xs bg-teal-600 hover:bg-teal-500 text-white rounded-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-print"></i> Print / Export PDF
+                    </button>
+                    <button onclick="closeNotebookModal()" class="text-slate-400 hover:text-white p-2 rounded-lg hover:bg-slate-800">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto custom-scrollbar space-y-6 flex-1 text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                    <div>
+                        <span class="text-slate-500 block">Student Investigator</span>
+                        <input type="text" id="nb-student-name" value="Jane Doe (Student)" onchange="saveNotebookHeader()" class="bg-transparent font-bold text-white text-sm focus:outline-none w-full border-b border-dashed border-slate-700">
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Course / Lab Group</span>
+                        <input type="text" id="nb-group-name" value="MB-402 Group B" onchange="saveNotebookHeader()" class="bg-transparent font-bold text-white text-sm focus:outline-none w-full border-b border-dashed border-slate-700">
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Date Last Modified</span>
+                        <span class="font-mono text-slate-300 block mt-1" id="nb-date-stamp">2026-09-25</span>
+                    </div>
+                </div>
+
+                <!-- Notebook Entry Editor for Active Practical -->
+                <div class="space-y-3">
+                    <label class="font-bold text-sm text-teal-400 block">
+                        Notebook Entry for: <span id="nb-active-practical-title" class="text-white">Practical 1</span>
+                    </label>
+                    
+                    <textarea id="notebook-textarea" rows="12" oninput="saveCurrentNotebookEntry()" 
+                              placeholder="Record your observations, calculations, raw data, gel run times, error notes, and protocol modifications here following GLP format..."
+                              class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 font-mono text-slate-200 text-xs focus:outline-none focus:border-teal-500 leading-relaxed custom-scrollbar"></textarea>
+                    
+                    <div class="flex items-center justify-between text-slate-500 text-[11px]">
+                        <span><i class="fa-solid fa-floppy-disk text-teal-400 mr-1"></i> Auto-saved to browser session</span>
+                        <span id="nb-word-count">0 words</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        // Comprehensive Dataset for all 10 Molecular Biology Practicals
+        const PRACTICALS_DATA = [
+            {
+                id: 1,
+                title: "Practical 1: Keeping A Laboratory Notebook",
+                category: "Core Laboratory Skills",
+                description: "Master the standards of maintaining a legally defensible, clear, and reproducible molecular biology laboratory notebook according to Good Laboratory Practice (GLP).",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Remember that notebook entries must be completed in real-time during the lab session, not backdated!",
+                objectives: [
+                    "Understand the legal and ethical importance of laboratory record keeping.",
+                    "Format notebook entries with dates, title, objectives, reagent lot numbers, and signatures.",
+                    "Record raw data, unexpected results, and deviations without erasing or altering past entries."
+                ],
+                reagents: ["Lab Notebook", "Indelible Ink Pen", "Sample Raw Data Sheet", "Reagent Inventory Log"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Standard Operating Procedure (SOP) for Notebook Maintenance</h4>
+                    <p class="mt-2">1. <strong>Binding & Page Numbering:</strong> Use a permanently bound notebook with pre-numbered pages. Never tear pages out.</p>
+                    <p class="mt-2">2. <strong>Title & Header:</strong> Start each entry on a fresh page with: Date, Project/Practical Name, Objective, and Investigator Name.</p>
+                    <p class="mt-2">3. <strong>Reagents & Lot Numbers:</strong> List all chemicals, enzyme batch numbers, stock concentration calculations, and expiration dates used in the experiment.</p>
+                    <p class="mt-2">4. <strong>Raw Data & Diagrams:</strong> Paste gel photos, trace chromatograms, spectrophotometer printouts directly onto the page, sign across the border, and date.</p>
+                    <p class="mt-2">5. <strong>Corrections:</strong> If a mistake is made, draw a single line through the error and initial. Never use correction fluid or obscure text.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p1_q1",
+                        question: "Why is white-out / liquid paper strictly prohibited in GLP laboratory notebooks?",
+                        options: [
+                            "It damages the paper quality",
+                            "It obscures original entries, preventing full data audit transparency",
+                            "It reacts chemically with gel staining dyes",
+                            "It takes too long to dry"
+                        ],
+                        correct: 1,
+                        explanation: "Audit standards require that all original entries remain readable even if crossed out."
+                    },
+                    {
+                        id: "p1_q2",
+                        question: "Which item MUST be included when logging a new enzyme reagent in your notebook?",
+                        options: [
+                            "Manufacturer, lot/batch number, and storage temperature",
+                            "The name of the delivery courier",
+                            "The color of the tube cap",
+                            "The chemical formula of the plastic tube"
+                        ],
+                        correct: 0,
+                        explanation: "Lot numbers and storage requirements ensure experiment reproducibility across batches."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post1_q1",
+                        question: "Review the provided mock laboratory notebook page image. Identify 3 GLP violations present in the entry.",
+                        placeholder: "List violation 1, violation 2, and violation 3 with explanation..."
+                    },
+                    {
+                        id: "post1_q2",
+                        question: "How should unexpected or failed experimental results be documented in your lab notebook?",
+                        placeholder: "Describe the proper protocol for recording failed experiments..."
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "Practical 2: Measuring Weights; Preparation of Solutions",
+                category: "Quantitative Solution Preparation",
+                description: "Learn analytical balance operation, buffer preparation, molarity calculations, stock dilutions, and pH adjustment.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Bring your scientific calculator. Always calibrate the analytical balance before weighing hygroscopic salts like Tris or EDTA.",
+                objectives: [
+                    "Operate analytical balances to weigh chemicals accurately to within ±0.1 mg.",
+                    "Calculate molar, percentage (w/v), and stock concentration solutions.",
+                    "Adjust solution pH accurately using 1N HCl / 1N NaOH and calibrated glass electrodes."
+                ],
+                reagents: ["Tris Base (MW=121.14)", "EDTA Disodium (MW=372.24)", "NaCl", "1N HCl", "pH Meter"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Preparation of 500 mL 1M Tris-HCl (pH 8.0) & 0.5M EDTA Buffer</h4>
+                    <p class="mt-2">1. <strong>Calculation:</strong> Mass = Molarity (mol/L) × Volume (L) × Molecular Weight (g/mol).</p>
+                    <p class="mt-2">2. <strong>Weighing:</strong> Tare weighing paper on the analytical balance. Weigh calculated Tris base accurately.</p>
+                    <p class="mt-2">3. <strong>Dissolution:</strong> Dissolve Tris in ~400 mL deionized H2O in a glass beaker using a magnetic stirrer.</p>
+                    <p class="mt-2">4. <strong>pH Calibration & Adjustment:</strong> Calibrate pH meter with pH 4, 7, and 10 standard buffers. Add 1N HCl slowly until pH reaches 8.0.</p>
+                    <p class="mt-2">5. <strong>Volumetric Measurement:</strong> Transfer solution to a 500 mL volumetric flask and adjust total volume to the mark with ddH2O.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p2_q1",
+                        question: "How many grams of NaCl (MW = 58.44 g/mol) are required to prepare 250 mL of a 0.5 M solution?",
+                        options: ["7.31 g", "14.61 g", "29.22 g", "3.65 g"],
+                        correct: 0,
+                        explanation: "Mass = 0.5 mol/L × 0.25 L × 58.44 g/mol = 7.305 g ~ 7.31 g."
+                    },
+                    {
+                        id: "p2_q2",
+                        question: "What volume of 50X TAE buffer stock is needed to make 1000 mL of 1X TAE working gel buffer?",
+                        options: ["10 mL", "20 mL", "50 mL", "100 mL"],
+                        correct: 1,
+                        explanation: "C1V1 = C2V2 => (50X)(V1) = (1X)(1000 mL) => V1 = 20 mL."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post2_q1",
+                        question: "Calculate the exact mass of EDTA disodium salt (MW = 372.24 g/mol) required to make 200 mL of 0.5 M EDTA solution. Show your complete calculation steps.",
+                        placeholder: "Show step-by-step formula and solution..."
+                    },
+                    {
+                        id: "post2_q2",
+                        question: "Why does EDTA fail to dissolve fully in water until the pH is adjusted to ~8.0 with NaOH?",
+                        placeholder: "Explain protonation and solubility mechanism of EDTA..."
+                    }
+                ]
+            },
+            {
+                id: 3,
+                title: "Practical 3: Measuring Volumes; Performance Verification of A Micropipettor",
+                category: "Precision Liquid Handling",
+                description: "Master micropipette operation (P20, P200, P1000) and perform gravimetric calibration to measure accuracy and precision.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Never turn micropipette volume dials past their maximum rated range or lay loaded pipettes horizontally on the bench!",
+                objectives: [
+                    "Distinguish appropriate volume ranges for P20, P200, and P1000 micropipettors.",
+                    "Perform forward and reverse pipetting techniques correctly.",
+                    "Verify accuracy and precision (% Error & % CV) using gravimetric water weighings."
+                ],
+                reagents: ["P20, P200, P1000 Micropipettes", "Aerosol Barrier Tips", "Deionized H2O (22°C)", "Analytical Balance"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Gravimetric Verification Protocol</h4>
+                    <p class="mt-2">1. <strong>Setup:</strong> Tare an analytical balance with a small water-filled weighing vessel.</p>
+                    <p class="mt-2">2. <strong>Pipetting:</strong> Set P1000 to 1000 µL. Attach tip, depress plunger to 1st stop, submerge tip 2-3 mm, release plunger smoothly.</p>
+                    <p class="mt-2">3. <strong>Dispensing:</strong> Dispense into weighing vessel by depressing plunger to 2nd stop. Record mass in mg (1 µL pure H2O = 1.000 mg at 20°C).</p>
+                    <p class="mt-2">4. <strong>Replication:</strong> Repeat 10 consecutive dispenses for 100%, 50%, and 10% nominal volume.</p>
+                    <p class="mt-2">5. <strong>Statistics:</strong> Calculate Mean, Standard Deviation (SD), % Systematic Error (Accuracy), and % CV (Precision).</p>
+                `,
+                prelab: [
+                    {
+                        id: "p3_q1",
+                        question: "Which micropipette should be selected to transfer a volume of 15.5 µL?",
+                        options: ["P1000", "P200", "P20", "P2"],
+                        correct: 2,
+                        explanation: "P20 covers 2-20 µL range, giving highest accuracy for 15.5 µL."
+                    },
+                    {
+                        id: "p3_q2",
+                        question: "What does pressing the micropipette plunger to the SECOND stop accomplish?",
+                        options: [
+                            "Aspirates the exact volume",
+                            "Blows out residual liquid remaining in the tip during dispense",
+                            "Calibrates the internal piston spring",
+                            "Ejects the plastic tip"
+                        ],
+                        correct: 1,
+                        explanation: "The second stop provides a blow-out stroke to clear remaining liquid inside the tip."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post3_q1",
+                        question: "Given 10 replicate weight measurements of 100 µL target volume: Mean = 97.2 mg, SD = 0.8 mg. Calculate % Systematic Error and % CV.",
+                        placeholder: "Show equations for % Error and % CV..."
+                    },
+                    {
+                        id: "post3_q2",
+                        question: "Explain how air bubbles aspirated into a micropipette tip affect both accuracy and precision of PCR sample preparation.",
+                        placeholder: "Discuss effect on stoichiometry and assay variance..."
+                    }
+                ]
+            },
+            {
+                id: 4,
+                title: "Practical 4: Nucleic Acids Extraction",
+                category: "DNA/RNA Isolation",
+                description: "Extract high-molecular-weight genomic DNA from bacterial/tissue samples using organic and column-based lysis methods.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Keep Proteinase K on ice. Wear safety goggles when using phenol-chloroform mixtures.",
+                objectives: [
+                    "Understand chemical cell disruption: detergent lysis, enzymatic digestion, and chelation.",
+                    "Perform genomic DNA extraction using spin-column silica binding chemistry.",
+                    "Elute purified genomic DNA and preserve sample integrity."
+                ],
+                reagents: ["Lysis Buffer (SDS/Triton X)", "Proteinase K", "Isopropanol", "70% Ethanol", "Silica Spin Columns"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Silica Spin-Column DNA Extraction Protocol</h4>
+                    <p class="mt-2">1. <strong>Cell Lysis:</strong> Resuspend cell pellet in 180 µL Lysis Buffer + 20 µL Proteinase K. Incubate at 56°C for 30 min.</p>
+                    <p class="mt-2">2. <strong>Binding Conditions:</strong> Add 200 µL Binding Buffer and 200 µL 100% Ethanol. Mix thoroughly by vortexing.</p>
+                    <p class="mt-2">3. <strong>Column Loading:</strong> Transfer lysate into silica spin column. Centrifuge at 10,000 × g for 1 min. Discard flow-through.</p>
+                    <p class="mt-2">4. <strong>Washing:</strong> Wash column twice with Wash Buffer 1 & 2 containing ethanol to remove protein contaminants and salts.</p>
+                    <p class="mt-2">5. <strong>Elution:</strong> Add 50 µL warm Nuclease-Free Water or TE Buffer to column matrix. Incubate 2 min, centrifuge at max speed to elute DNA.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p4_q1",
+                        question: "What is the primary role of Proteinase K during cell lysis?",
+                        options: [
+                            "To precipitate genomic DNA",
+                            "To degrade nucleases and cell structural proteins",
+                            "To adjust solution pH to 8.0",
+                            "To stain DNA bands"
+                        ],
+                        correct: 1,
+                        explanation: "Proteinase K digest cellular proteins and inactivates endogenous DNases that could degrade genomic DNA."
+                    },
+                    {
+                        id: "p4_q2",
+                        question: "Why is 70% ethanol used during the wash step instead of pure water?",
+                        options: [
+                            "Pure water would prematurely elute DNA off the silica matrix",
+                            "Water degrades DNA double helix structure",
+                            "Ethanol neutralizes sample pH",
+                            "Water evaporates too slowly"
+                        ],
+                        correct: 0,
+                        explanation: "High ethanol concentration keeps DNA bound to silica while washing away residual salts."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post4_q1",
+                        question: "Compare and contrast organic (Phenol-Chloroform) extraction with Silica Spin-Column extraction regarding safety, purity, and yield.",
+                        placeholder: "Discuss differences in mechanics, toxicity, and recovery..."
+                    },
+                    {
+                        id: "post4_q2",
+                        question: "If your genomic DNA sample shows severe degradation (shearing) on a gel, what technical error likely occurred during isolation?",
+                        placeholder: "Identify causes such as excessive vortexing or DNase contamination..."
+                    }
+                ]
+            },
+            {
+                id: 5,
+                title: "Practical 5: Plasmid Preparation",
+                category: "Plasmid Isolation",
+                description: "Isolate extrachromosomal plasmid DNA from E. coli using the classic Birnboim & Doly alkaline lysis protocol.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Do not vortex after adding Solution II (Neutralization buffer) to avoid shearing genomic DNA into your plasmid yield!",
+                objectives: [
+                    "Differentiate between chromosomal bacterial DNA and circular plasmid DNA.",
+                    "Execute alkaline lysis steps: Solution I (resuspension), II (lysis/denaturation), III (neutralization).",
+                    "Understand selective renaturation of plasmid vs chromosomal DNA."
+                ],
+                reagents: ["Solution I (Tris/EDTA/Glucose)", "Solution II (0.2N NaOH/1% SDS)", "Solution III (3M Potassium Acetate pH 5.5)", "Isopropanol"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Alkaline Lysis Mini-Prep SOP</h4>
+                    <p class="mt-2">1. <strong>Harvest:</strong> Centrifuge 3 mL E. coli overnight culture at 12,000 × g for 2 min. Decant supernatant completely.</p>
+                    <p class="mt-2">2. <strong>Resuspension (Sol I):</strong> Add 100 µL ice-cold Solution I. Vortex vigorously to completely resuspend bacterial pellet.</p>
+                    <p class="mt-2">3. <strong>Alkaline Lysis (Sol II):</strong> Add 200 µL Solution II. Invert tube gently 5 times. Solution turns clear and viscous. Do not vortex!</p>
+                    <p class="mt-2">4. <strong>Neutralization (Sol III):</strong> Add 150 µL ice-cold Solution III. Invert gently. White genomic DNA/protein clot forms instantly.</p>
+                    <p class="mt-2">5. <strong>Clarification & Precipitation:</strong> Centrifuge 10 min at 13,000 rpm. Transfer clear supernatant to clean tube. Add 0.7 vol Isopropanol to precipitate plasmid DNA.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p5_q1",
+                        question: "What chemical component in Solution II denatures both double-stranded genomic DNA and plasmid DNA?",
+                        options: ["Sodium Dodecyl Sulfate (SDS) and NaOH", "Potassium Acetate", "Glucose", "Isopropanol"],
+                        correct: 0,
+                        explanation: "NaOH raises pH to ~12.5, unwinding dsDNA, while SDS dissolves membrane lipid bilayers."
+                    },
+                    {
+                        id: "p5_q2",
+                        question: "Why does plasmid DNA remain in solution after adding Solution III while genomic DNA precipitates?",
+                        options: [
+                            "Plasmid DNA is smaller and covalently closed, allowing rapid re-annealing upon pH neutralization",
+                            "Genomic DNA is hydrophobic",
+                            "Plasmid DNA reacts with potassium acetate",
+                            "Genomic DNA dissolves in isopropanol"
+                        ],
+                        correct: 0,
+                        explanation: "Covalently closed plasmid strands remain physically linked and rapidly re-anneal, while long genomic DNA entangles into insoluble complex with SDS/proteins."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post5_q1",
+                        question: "Draw or describe the 3 distinct topological forms of plasmid DNA observed on an agarose gel (supercoiled, relaxed circular, linear).",
+                        placeholder: "Explain migration speeds and structural differences..."
+                    },
+                    {
+                        id: "post5_q2",
+                        question: "Why does vigorous vortexing after Solution II addition lead to genomic DNA contamination in your final plasmid prep?",
+                        placeholder: "Explain shearing of chromosomal DNA..."
+                    }
+                ]
+            },
+            {
+                id: 6,
+                title: "Practical 6: DNA Quantification (Spectrophotometry)",
+                category: "Sample Quality Control",
+                description: "Measure DNA concentration and purity ratios (A260/A280 and A260/A230) using UV micro-volume spectrophotometry (NanoDrop).",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Always clean the optical pedestal with deionized water and lint-free wipes before and after blanking.",
+                objectives: [
+                    "Apply the Beer-Lambert Law to nucleic acid spectrophotometric analysis.",
+                    "Interpret absorption spectra (peak at 260 nm, protein at 280 nm, organic contaminants at 230 nm).",
+                    "Evaluate sample purity based on A260/A280 (1.8 ideal) and A260/A230 (2.0-2.2 ideal) ratios."
+                ],
+                reagents: ["Purified DNA Samples", "TE Buffer Blank", "NanoDrop / UV Spectrophotometer", "Lint-Free Wipes"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">NanoDrop Spectrophotometer Operation</h4>
+                    <p class="mt-2">1. <strong>Clean Pedestal:</strong> Pipette 2 µL ddH2O onto pedestal and wipe clean with Kimwipe.</p>
+                    <p class="mt-2">2. <strong>Blanking:</strong> Pipette 1.5 µL of the exact buffer used for DNA elution (e.g., TE Buffer) onto pedestal. Lower arm, click 'Blank'.</p>
+                    <p class="mt-2">3. <strong>Sample Measurement:</strong> Wipe pedestal. Load 1.5 µL DNA sample. Measure absorbances at 230, 260, and 280 nm.</p>
+                    <p class="mt-2">4. <strong>Calculation:</strong> dsDNA Concentration (µg/mL) = A260 × 50 µg/mL × Dilution Factor.</p>
+                    <p class="mt-2">5. <strong>Purity Assessment:</strong> Check A260/A280 ratio (1.8 ± 0.05) and A260/A230 ratio (2.0-2.2).</p>
+                `,
+                prelab: [
+                    {
+                        id: "p6_q1",
+                        question: "An A260 absorbance reading of 1.0 corresponds to what concentration of double-stranded DNA (dsDNA)?",
+                        options: ["50 µg/mL", "40 µg/mL", "33 µg/mL", "100 µg/mL"],
+                        correct: 0,
+                        explanation: "1.0 A260 unit = 50 µg/mL for dsDNA (40 µg/mL for RNA, 33 µg/mL for ssDNA)."
+                    },
+                    {
+                        id: "p6_q2",
+                        question: "A purified DNA sample yields A260/A280 = 1.4. What does this low ratio indicate?",
+                        options: [
+                            "Protein or phenol contamination",
+                            "RNA contamination",
+                            "High salt concentration",
+                            "Sample is pure DNA"
+                        ],
+                        correct: 0,
+                        explanation: "A ratio lower than 1.8 indicates protein contamination (absorbs strongly at 280 nm due to aromatic amino acids)."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post6_q1",
+                        question: "Sample A has A260 = 0.650, A280 = 0.361, A230 = 0.310 (1:10 dilution). Calculate: 1) Undiluted DNA concentration in µg/mL, 2) A260/A280 ratio, 3) Assess purity.",
+                        placeholder: "Show concentration calculation and purity interpretation..."
+                    },
+                    {
+                        id: "post6_q2",
+                        question: "What contaminant is typically responsible for a low A260/A230 ratio (< 1.5)? How does it affect downstream PCR?",
+                        placeholder: "Discuss guanidine salts, phenol, carbohydrate contamination and enzyme inhibition..."
+                    }
+                ]
+            },
+            {
+                id: 7,
+                title: "Practical 7: Restriction Digestion",
+                category: "Recombinant DNA Tools",
+                description: "Perform endonucleolytic cleavage of plasmid DNA using restriction enzymes (EcoRI, HindIII, BamHI) and analyze fragment digestion patterns.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Restriction enzymes are heat-sensitive! Keep enzyme tubes on benchtop cooling blocks at -20°C at all times.",
+                objectives: [
+                    "Understand restriction endonuclease site recognition and overhang generation (sticky vs blunt ends).",
+                    "Calculate enzyme unit definitions (1 Unit cleaves 1 µg DNA in 1 hour at 37°C).",
+                    "Set up single and double digest reactions with appropriate reaction buffer."
+                ],
+                reagents: ["pUC19 Plasmid DNA", "EcoRI (10 U/µL)", "HindIII (10 U/µL)", "10X Restriction Buffer", "Nuclease-Free Water"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Double Digestion Reaction Setup Protocol</h4>
+                    <p class="mt-2">1. <strong>Reaction Reaction Components (20 µL Total):</strong></p>
+                    <p class="ml-4 text-xs font-mono text-teal-300">• Nuclease-Free H2O: 13.5 µL<br>• 10X Universal Reaction Buffer: 2.0 µL<br>• Plasmid DNA (0.5 µg/µL): 2.0 µL (1.0 µg)<br>• EcoRI Enzyme: 1.0 µL (10 U)<br>• HindIII Enzyme: 1.0 µL (10 U)</p>
+                    <p class="mt-2">2. <strong>Mixing:</strong> Pipette gently to mix without creating foam. Spin microtube briefly.</p>
+                    <p class="mt-2">3. <strong>Incubation:</strong> Place reaction tube in 37°C water bath or thermal block for 1 hour.</p>
+                    <p class="mt-2">4. <strong>Heat Inactivation:</strong> Heat-inactivate enzymes at 65°C for 20 minutes (if required).</p>
+                    <p class="mt-2">5. <strong>Analysis:</strong> Add 4 µL 6X Loading Dye and proceed to Agarose Gel Electrophoresis.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p7_q1",
+                        question: "How is One Unit (1 U) of a restriction endonuclease defined?",
+                        options: [
+                            "The amount of enzyme required to cleave 1 µg of substrate DNA in 1 hour at 37°C in 50 µL volume",
+                            "The volume of enzyme in 1 mL stock solution",
+                            "The mass of enzyme required to digest 1 mg DNA in 10 minutes",
+                            "The concentration needed for PCR amplification"
+                        ],
+                        correct: 0,
+                        explanation: "Standard unit definition: Amount needed to completely digest 1 µg DNA in 1 hour under optimal buffer conditions."
+                    },
+                    {
+                        id: "p7_q2",
+                        question: "Why should glycerol concentration in a restriction digestion reaction remain below 10%?",
+                        options: [
+                            "High glycerol induces star activity (non-specific cleavage)",
+                            "Glycerol denatures DNA strands",
+                            "Glycerol prevents gel loading dye from sinking",
+                            "Glycerol freezes at 37°C"
+                        ],
+                        correct: 0,
+                        explanation: "Excessive glycerol (>10% v/v) causes restriction enzymes to cleave non-cognate sequence motifs (Star activity)."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post7_q1",
+                        question: "A circular plasmid of 5000 bp has EcoRI recognition sites at positions 1000 bp and 3500 bp. Predict the number and exact sizes of DNA fragments produced upon complete digestion.",
+                        placeholder: "List fragment sizes and explain calculation..."
+                    },
+                    {
+                        id: "post7_q2",
+                        question: "Differentiate between compatible sticky ends and blunt ends in DNA ligation reactions.",
+                        placeholder: "Explain overhang annealing and ligation kinetics..."
+                    }
+                ]
+            },
+            {
+                id: 8,
+                title: "Practical 8: Polymerase Chain Reaction",
+                category: "Target DNA Amplification",
+                description: "Design and execute enzymatic DNA amplification via Polymerase Chain Reaction (PCR) using Taq DNA polymerase and thermal cycling parameters.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Set up master mix in dedicated pre-PCR clean hood to prevent aerosol DNA contamination!",
+                objectives: [
+                    "Master PCR thermal cycling stages: Denaturation (95°C), Annealing (55-65°C), Extension (72°C).",
+                    "Calculate primer melting temperatures (Tm) and design forward/reverse primers.",
+                    "Assemble master mix reaction components accurately."
+                ],
+                reagents: ["2X Taq Master Mix", "Forward Primer (10 µM)", "Reverse Primer (10 µM)", "Template DNA", "Nuclease-Free H2O"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Standard 25 µL PCR Reaction Protocol</h4>
+                    <p class="mt-2">1. <strong>Master Mix Preparation (On Ice):</strong></p>
+                    <p class="ml-4 text-xs font-mono text-teal-300">• 2X Taq Reaction Master Mix: 12.5 µL<br>• Forward Primer (10 µM): 1.0 µL<br>• Reverse Primer (10 µM): 1.0 µL<br>• Template DNA (~50 ng): 2.0 µL<br>• Nuclease-Free Water: 8.5 µL</p>
+                    <p class="mt-2">2. <strong>Thermal Cycler Program Setup:</strong></p>
+                    <p class="ml-4 text-xs font-mono text-slate-300">• Initial Denaturation: 95°C for 3 min<br>• 30 Cycles of:<br>&nbsp;&nbsp;- Denaturation: 95°C for 30 sec<br>&nbsp;&nbsp;- Annealing: 58°C for 30 sec<br>&nbsp;&nbsp;- Extension: 72°C for 45 sec (1 min/kb)<br>• Final Extension: 72°C for 5 min<br>• Hold: 4°C forever</p>
+                `,
+                prelab: [
+                    {
+                        id: "p8_q1",
+                        question: "What chemical component supplies the building blocks for new DNA strand synthesis during PCR?",
+                        options: [
+                            "Deoxynucleoside Triphosphates (dNTPs: dATP, dCTP, dGTP, dTTP)",
+                            "Magnesium Chloride (MgCl2)",
+                            "Taq Polymerase enzyme",
+                            "Oligonucleotide primers"
+                        ],
+                        correct: 0,
+                        explanation: "dNTPs are the nucleotide precursor monomer substrates incorporated into the growing DNA strand."
+                    },
+                    {
+                        id: "p8_q2",
+                        question: "If primer annealing temperature is set 10°C too LOW during thermal cycling, what result is expected?",
+                        options: [
+                            "Non-specific primer binding and spurious secondary PCR products",
+                            "No amplification at all due to primer denaturation",
+                            "Enzyme degradation",
+                            "DNA cleavage into single nucleotides"
+                        ],
+                        correct: 0,
+                        explanation: "Low annealing temperatures reduce primer specificity, allowing primers to anneal to imperfectly matched non-target sequences."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post8_q1",
+                        question: "Calculate theoretical fold-amplification and total DNA yield after 30 cycles starting with 10 copies of target template DNA.",
+                        placeholder: "Use formula 2^N and calculate final molecule count..."
+                    },
+                    {
+                        id: "post8_q2",
+                        question: "What is the purpose of the 'No Template Control' (NTC) in a PCR experiment? What does a band in the NTC lane signify?",
+                        placeholder: "Explain contamination controls and diagnostic troubleshooting..."
+                    }
+                ]
+            },
+            {
+                id: 9,
+                title: "Practical 9: Agarose Gel Electrophoresis",
+                category: "DNA Resolution & Sizing",
+                description: "Cast agarose gels, load DNA ladder standards, separate PCR products under electric field, and visualize fragments under UV transillumination.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Ethidium bromide / GelRed is present in the gel matrix. Always wear nitrile gloves when handling gel apparatus!",
+                objectives: [
+                    "Cast agarose gels at target percentages (0.8% - 2.0% w/v) based on DNA fragment size.",
+                    "Understand charge-to-mass ratio and migration toward the positive anode (+).",
+                    "Generate a standard curve (log bp vs migration distance) to size unknown DNA bands."
+                ],
+                reagents: ["Agarose Powder", "1X TAE Buffer", "GelRed / Ethidium Bromide Staining Dye", "1 kb DNA Ladder", "6X Loading Buffer"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Agarose Gel Casting & Electrophoresis SOP</h4>
+                    <p class="mt-2">1. <strong>Gel Preparation (1.2% Agarose):</strong> Weigh 1.2 g agarose powder in 100 mL 1X TAE buffer. Microwave until clear and boiling.</p>
+                    <p class="mt-2">2. <strong>Staining & Casting:</strong> Cool solution to ~55°C. Add 5 µL GelRed stain. Pour into gel tray with comb inserted. Solidify 25 min.</p>
+                    <p class="mt-2">3. <strong>Sample Loading:</strong> Submerge gel in electrophoresis tank with 1X TAE buffer. Load 5 µL DNA ladder in Lane 1, and samples + loading dye in remaining wells.</p>
+                    <p class="mt-2">4. <strong>Running Conditions:</strong> Connect electrodes (Black = Cathode -, Red = Anode +). Run at 100 Volts constant for 45 minutes.</p>
+                    <p class="mt-2">5. <strong>Visualization:</strong> Capture image on UV/Blue-light Transilluminator Gel Documentation System.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p9_q1",
+                        question: "Towards which electrode (+) or (-) does DNA migrate during agarose gel electrophoresis, and why?",
+                        options: [
+                            "Toward Positive Anode (+), because phosphate backbone gives DNA net negative charge",
+                            "Toward Negative Cathode (-), because bases are positive",
+                            "Toward Positive Anode (+), because ribose sugar is neutral",
+                            "DNA stays stationary in gel wells"
+                        ],
+                        correct: 0,
+                        explanation: "Negatively charged phosphate groups in the DNA backbone drive migration toward the positive anode (+)."
+                    },
+                    {
+                        id: "p9_q2",
+                        question: "Which agarose concentration should be selected to resolve small DNA fragments (100 bp - 500 bp)?",
+                        options: ["2.0% Agarose Gel", "0.7% Agarose Gel", "0.4% Agarose Gel", "5.0% Polyacrylamide"],
+                        correct: 0,
+                        explanation: "Higher agarose percentage (2.0%) creates smaller pore sizes necessary to resolve small fragments."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post9_q1",
+                        question: "Plot migration distance (mm) versus log10(bp) for the standard DNA ladder. Estimate the size of an unknown band migrating 34 mm.",
+                        placeholder: "Provide linear regression slope equation and interpolated size in bp..."
+                    },
+                    {
+                        id: "post9_q2",
+                        question: "What causes DNA bands to appear smeared across the agarose gel lane rather than distinct sharp bands?",
+                        placeholder: "Discuss DNA degradation, gel overloading, voltage too high, and buffer exhaustion..."
+                    }
+                ]
+            },
+            {
+                id: 10,
+                title: "Practical 10: Sequencing of DNA",
+                category: "Genomics & Bioanalytics",
+                description: "Analyze Sanger chain-termination sequencing chromatograms, read fluorophore peak traces, and identify point mutations.",
+                videoUrl: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+                instructorNote: "Analyze the base quality Phred scores (Q30) near the beginning and end of the sequencing chromatograms.",
+                objectives: [
+                    "Understand the Sanger dideoxy chain-termination sequencing mechanism (ddNTPs).",
+                    "Analyze 4-color fluorescence chromatogram capillary electrophoresis traces.",
+                    "Perform nucleotide base calling, identify ambiguous N calls, and locate heterozygous point mutations."
+                ],
+                reagents: ["Dideoxynucleotides (ddNTPs-dye labeled)", "Sequencing Primer", "Capillary Electrophoresis Buffer", "Polymer Matrix"],
+                protocol: `
+                    <h4 class="font-bold text-teal-400 text-base">Sanger Sequencing Data Analysis Protocol</h4>
+                    <p class="mt-2">1. <strong>Dideoxy Reaction Concept:</strong> DNA synthesis incorporates fluorescent ddNTPs lacking a 3'-OH group, terminating chain extension.</p>
+                    <p class="mt-2">2. <strong>Capillary Resolution:</strong> Terminated fragments pass single-file through capillary tube laser detector.</p>
+                    <p class="mt-2">3. <strong>Chromatogram Peak Traces:</strong> Colors represent nitrogenous bases: Green = A, Blue = C, Black/Yellow = G, Red = T.</p>
+                    <p class="mt-2">4. <strong>Quality Score Inspection:</strong> Verify Phred quality scores (Q >= 30 represents 99.9% base call accuracy).</p>
+                    <p class="mt-2">5. <strong>Alignment:</strong> BLAST query sequence against wild-type reference sequence to detect SNPs, insertions, or deletions.</p>
+                `,
+                prelab: [
+                    {
+                        id: "p10_q1",
+                        question: "Why do dideoxynucleotides (ddNTPs) terminate DNA polymerization synthesis reactions?",
+                        options: [
+                            "They lack a 3'-OH hydroxyl group required to form phosphodiester bond with next incoming dNTP",
+                            "They degrade Taq polymerase enzyme",
+                            "They bind irreversibly to template DNA",
+                            "They lack a nitrogenous base"
+                        ],
+                        correct: 0,
+                        explanation: "Without a 3'-OH group, DNA polymerase cannot form the phosphodiester linkage needed to add the next nucleotide."
+                    },
+                    {
+                        id: "p10_q2",
+                        question: "What does a Phred Quality Score of Q30 indicate regarding base call accuracy?",
+                        options: [
+                            "99.9% accuracy (1 error in 1,000 base calls)",
+                            "90% accuracy (1 error in 10 base calls)",
+                            "99% accuracy (1 error in 100 base calls)",
+                            "50% accuracy"
+                        ],
+                        correct: 0,
+                        explanation: "Phred Score Q30 = -10 * log10(P_error) => P_error = 0.001 => 99.9% accuracy."
+                    }
+                ],
+                postlab: [
+                    {
+                        id: "post10_q1",
+                        question: "In a Sanger chromatogram, two overlapping peaks (Red T and Blue C) of equal height appear at nucleotide position 142. What does this double peak signify?",
+                        placeholder: "Explain heterozygous SNP / mutation..."
+                    },
+                    {
+                        id: "post10_q2",
+                        question: "Why are the first 20-30 bases in a Sanger sequencing chromatogram often noisy and unreliable for accurate base calling?",
+                        placeholder: "Explain primer binding proximity, excess dye terminators, and capillary capillary equilibration..."
+                    }
+                ]
+            }
+        ];
+
+        let activePracticalId = 1;
+        let currentRole = 'student'; // 'student' or 'instructor'
+        let activeTab = 'tab-video';
+        
+        // Storage state for user data
+        let userState = {
+            completedPracticals: {}, // e.g., { 1: true, 2: true }
+            prelabScores: {}, // e.g., { 1: 100, 2: 50 }
+            postlabSubmissions: {}, // e.g., { 1: { q1: 'answer', q2: 'answer', date: '2026-09-25' } }
+            notebookEntries: {}, // e.g., { 1: "My notes..." }
+            customVideoUrls: {}, // e.g., { 1: "https://..." }
+            customNotes: {} // e.g., { 1: "Announcement..." }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadStateFromLocalStorage();
+            renderPracticalList();
+            loadPracticalContent(activePracticalId);
+            updateGlobalProgress();
+        });
+
+        // Local Storage Handler
+        function loadStateFromLocalStorage() {
+            try {
+                const saved = localStorage.getItem('mol_lab_portal_state');
+                if (saved) {
+                    userState = Object.assign(userState, JSON.parse(saved));
+                }
+            } catch(e) {
+                console.warn("Could not load local storage", e);
+            }
+        }
+
+        function saveStateToLocalStorage() {
+            try {
+                localStorage.setItem('mol_lab_portal_state', JSON.stringify(userState));
+            } catch(e) {
+                console.warn("Could not save to local storage", e);
+            }
+        }
+
+        function renderPracticalList(filterText = '') {
+            const container = document.getElementById('practical-list');
+            container.innerHTML = '';
+
+            PRACTICALS_DATA.forEach(p => {
+                if (filterText && !p.title.toLowerCase().includes(filterText.toLowerCase()) && !p.description.toLowerCase().includes(filterText.toLowerCase())) {
+                    return;
+                }
+
+                const isActive = p.id === activePracticalId;
+                const isCompleted = !!userState.completedPracticals[p.id];
+                const score = userState.prelabScores[p.id];
+
+                const btn = document.createElement('button');
+                btn.onclick = () => selectPractical(p.id);
+                btn.className = `w-full text-left p-3 rounded-xl transition-all flex items-center justify-between gap-2 border ${
+                    isActive 
+                        ? 'bg-slate-800 border-teal-500/50 text-white shadow-md' 
+                        : 'bg-slate-900/40 border-slate-800/80 text-slate-300 hover:bg-slate-800/50 hover:text-white'
+                }`;
+
+                btn.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                            isCompleted 
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                                : isActive ? 'bg-teal-500/20 text-teal-400 border border-teal-500/30' : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }">
+                            ${isCompleted ? '<i class="fa-solid fa-check"></i>' : p.id}
+                        </div>
+                        <div class="truncate">
+                            <div class="text-xs font-semibold truncate ${isActive ? 'text-teal-300' : 'text-slate-200'}">${p.title}</div>
+                            <div class="text-[10px] text-slate-500 truncate">${p.category}</div>
+                        </div>
+                    </div>
+                    ${score !== undefined ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-teal-500/10 text-teal-400 border border-teal-500/20 shrink-0">${score}%</span>` : ''}
+                `;
+
+                container.appendChild(btn);
+            });
+        }
+
+        function filterPracticals() {
+            const query = document.getElementById('search-input').value;
+            renderPracticalList(query);
+        }
+
+        function selectPractical(id) {
+            activePracticalId = id;
+            renderPracticalList(document.getElementById('search-input').value);
+            loadPracticalContent(id);
+        }
+
+        function loadPracticalContent(id) {
+            const practical = PRACTICALS_DATA.find(p => p.id === id);
+            if (!practical) return;
+
+            // Header Elements
+            document.getElementById('active-badge').innerText = `Practical ${practical.id}`;
+            document.getElementById('active-category').innerText = practical.category;
+            document.getElementById('active-title').innerText = practical.title.replace(`Practical ${practical.id}: `, '');
+            document.getElementById('active-description').innerText = practical.description;
+
+            // Completion Button State
+            updateCompletionButtonUI();
+
+            // Video & Note
+            const customUrl = userState.customVideoUrls[id] || practical.videoUrl;
+            document.getElementById('video-iframe').src = customUrl;
+            
+            const customNote = userState.customNotes[id] || practical.instructorNote;
+            document.getElementById('instructor-note-text').innerText = customNote;
+
+            // Objectives
+            const objList = document.getElementById('learning-objectives-list');
+            objList.innerHTML = practical.objectives.map(o => `<li>${o}</li>`).join('');
+
+            // Reagents
+            const reagentContainer = document.getElementById('reagents-tags');
+            reagentContainer.innerHTML = practical.reagents.map(r => `
+                <span class="px-2 py-1 rounded bg-slate-800 text-[11px] text-slate-300 border border-slate-700">${r}</span>
+            `).join('');
+
+            // Protocol
+            document.getElementById('protocol-content').innerHTML = practical.protocol;
+
+            // Render Simulator
+            renderSimulator(id);
+
+            // Render Prelab Quiz
+            renderPrelabForm(practical);
+
+            // Render Postlab Form
+            renderPostlabForm(practical);
+        }
+
+        function renderSimulator(id) {
+            const container = document.getElementById('simulator-container');
+            const simTitle = document.getElementById('sim-title');
+            const simSub = document.getElementById('sim-subtitle');
+
+            switch(id) {
+                case 1:
+                    simTitle.innerHTML = '<i class="fa-solid fa-book-pen text-teal-400"></i> Virtual GLP Notebook Sandbox';
+                    simSub.innerText = 'Practice formatting a compliant GLP experiment log.';
+                    container.innerHTML = `
+                        <div class="w-full max-w-2xl bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
+                            <div class="text-xs font-mono text-teal-400">SAMPLE ENTRY VERIFICATION WIDGET</div>
+                            <div class="space-y-2 text-xs">
+                                <label class="block text-slate-400">Title & Experiment ID</label>
+                                <input id="sim1-title" type="text" value="EX-2026-001: Plasmid Preparation" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                
+                                <label class="block text-slate-400 mt-2">Reagent Lot Entry</label>
+                                <input id="sim1-lot" type="text" value="Tris Buffer Lot #8849202, Exp: 12/2027" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                
+                                <label class="block text-slate-400 mt-2">Error Correction Style Check</label>
+                                <div class="p-3 bg-slate-900 rounded border border-slate-800 font-mono text-xs">
+                                    <span class="line-through text-red-400">Initial vol = 500 mL</span> 
+                                    <span class="text-emerald-400 ml-2">Corrected vol = 250 mL [J.D. 09/25/26]</span>
+                                </div>
+                            </div>
+                            <button onclick="alert('GLP Compliance Verified! Proper single-line strikethrough with initials recorded.')" class="w-full py-2 bg-teal-600 text-white rounded text-xs font-medium">
+                                Audit Sample Entry
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 2:
+                    simTitle.innerHTML = '<i class="fa-solid fa-calculator text-teal-400"></i> Interactive Molarity & Dilution Calculator Bench';
+                    simSub.innerText = 'Calculate mass and liquid volumes dynamically for stock buffer preparation.';
+                    container.innerHTML = `
+                        <div class="w-full max-w-xl bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Target Molarity (M)</label>
+                                    <input id="calc-m" type="number" step="0.01" value="0.5" oninput="runMolarityCalc()" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Target Volume (L)</label>
+                                    <input id="calc-v" type="number" step="0.05" value="0.25" oninput="runMolarityCalc()" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-slate-400 mb-1">Molecular Weight (g/mol) [e.g. NaCl = 58.44, Tris = 121.14]</label>
+                                    <input id="calc-mw" type="number" step="0.1" value="58.44" oninput="runMolarityCalc()" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                </div>
+                            </div>
+                            <div class="p-4 rounded-xl bg-teal-500/10 border border-teal-500/30 text-center">
+                                <div class="text-xs text-slate-400">Required Solute Mass</div>
+                                <div id="calc-result" class="text-2xl font-bold text-teal-300 font-mono mt-1">7.305 g</div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 3:
+                    simTitle.innerHTML = '<i class="fa-solid fa-eye-dropper text-teal-400"></i> Virtual Micropipette Volume Selector';
+                    simSub.innerText = 'Practice setting digital volume display windows for P20, P200, and P1000.';
+                    container.innerHTML = `
+                        <div class="w-full max-w-md bg-slate-950 p-6 rounded-xl border border-slate-800 text-center space-y-4">
+                            <div class="text-xs font-mono text-slate-400">P20 MICROPIPETTE DIGITAL DISPLAY</div>
+                            <div class="inline-block bg-slate-900 border-2 border-slate-700 rounded-lg p-4 font-mono text-3xl font-bold tracking-widest text-emerald-400 shadow-inner">
+                                <span id="pip-d1">1</span><span id="pip-d2">5</span><span class="text-red-400">.</span><span id="pip-d3" class="text-red-400">5</span> µL
+                            </div>
+                            <div class="flex justify-center gap-2">
+                                <button onclick="adjPipette(0.1)" class="px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-slate-200">+0.1 µL</button>
+                                <button onclick="adjPipette(-0.1)" class="px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-slate-200">-0.1 µL</button>
+                                <button onclick="adjPipette(1.0)" class="px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-slate-200">+1.0 µL</button>
+                                <button onclick="adjPipette(-1.0)" class="px-3 py-1 bg-slate-800 rounded border border-slate-700 text-xs text-slate-200">-1.0 µL</button>
+                            </div>
+                            <p class="text-[11px] text-slate-500">Note: The red bottom digit represents tenths of a microliter on a P20 model.</p>
+                        </div>
+                    `;
+                    break;
+
+                case 6:
+                    simTitle.innerHTML = '<i class="fa-solid fa-chart-line text-teal-400"></i> Virtual NanoDrop UV Spectrum Analyzer';
+                    simSub.innerText = 'Simulate spectrophotometric absorption curve and estimate purity.';
+                    container.innerHTML = `
+                        <div class="w-full max-w-xl bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                    <label class="block text-slate-400">A260 Absorbance (DNA Peak)</label>
+                                    <input id="nd-a260" type="number" step="0.05" value="0.80" oninput="runNanoDropSim()" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400">A280 Absorbance (Protein Peak)</label>
+                                    <input id="nd-a280" type="number" step="0.05" value="0.44" oninput="runNanoDropSim()" class="w-full bg-slate-900 border border-slate-700 p-2 rounded text-slate-200">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 p-4 rounded-xl bg-slate-900 border border-slate-800 text-center">
+                                <div>
+                                    <div class="text-[11px] text-slate-400">Calculated dsDNA Conc</div>
+                                    <div id="nd-conc" class="text-xl font-bold text-teal-300 font-mono">40.0 µg/mL</div>
+                                </div>
+                                <div>
+                                    <div class="text-[11px] text-slate-400">A260/A280 Ratio</div>
+                                    <div id="nd-ratio" class="text-xl font-bold text-emerald-400 font-mono">1.82 (Pure)</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                case 9:
+                    simTitle.innerHTML = '<i class="fa-solid fa-server text-teal-400"></i> Virtual Agarose Gel Electrophoresis Tank';
+                    simSub.innerText = 'Simulate running DNA fragments under electric field and visualize bands.';
+                    container.innerHTML = `
+                        <div class="w-full max-w-xl bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4 text-center">
+                            <div class="flex justify-between items-center text-xs text-slate-400 mb-2">
+                                <span class="text-blue-400 font-bold"><i class="fa-solid fa-minus"></i> Cathode (-)</span>
+                                <span>Running Buffer: 1X TAE</span>
+                                <span class="text-red-400 font-bold"><i class="fa-solid fa-plus"></i> Anode (+)</span>
+                            </div>
+                            
+                            <!-- Virtual Gel Bed -->
+                            <div class="w-full h-48 bg-slate-900 border-2 border-slate-800 rounded-xl relative p-4 flex justify-around items-start">
+                                <!-- Lane 1: Ladder -->
+                                <div class="flex flex-col items-center space-y-3 h-full justify-start border-r border-slate-800 pr-6">
+                                    <span class="text-[10px] text-slate-500 font-mono">Lane 1 (Ladder)</span>
+                                    <div id="band-lad-1" class="w-8 h-1 bg-amber-400 shadow-sm shadow-amber-400 rounded"></div>
+                                    <div id="band-lad-2" class="w-8 h-1 bg-amber-400 shadow-sm shadow-amber-400 rounded mt-4"></div>
+                                    <div id="band-lad-3" class="w-8 h-1 bg-amber-400 shadow-sm shadow-amber-400 rounded mt-8"></div>
+                                </div>
+
+                                <!-- Lane 2: Sample PCR Product -->
+                                <div class="flex flex-col items-center space-y-3 h-full justify-start pl-6">
+                                    <span class="text-[10px] text-teal-400 font-mono">Lane 2 (PCR Target)</span>
+                                    <div id="sample-band" class="w-8 h-1.5 bg-teal-300 shadow-md shadow-teal-400 rounded transition-all duration-1000 mt-0"></div>
+                                </div>
+                            </div>
+
+                            <button onclick="runGelSimulation()" class="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-semibold shadow">
+                                Turn On Power Supply (100V)
+                            </button>
+                        </div>
+                    `;
+                    break;
+
+                case 10:
+                    simTitle.innerHTML = '<i class="fa-solid fa-chart-area text-teal-400"></i> Virtual Sanger Chromatogram Viewer';
+                    simSub.innerText = 'Read fluorescence traces and perform automated base calling.';
+                    container.innerHTML = `
+                        <div class="w-full max-w-2xl bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
+                            <div class="text-xs font-mono text-slate-400 flex justify-between">
+                                <span>Capillary Trace Output (Bases 120-128)</span>
+                                <span class="text-teal-400">Phred Score: Q38</span>
+                            </div>
+                            
+                            <!-- Chromatogram Wave Display -->
+                            <div class="h-28 bg-slate-900 rounded-lg border border-slate-800 p-2 flex items-end justify-between px-6 relative overflow-hidden">
+                                <div class="flex flex-col items-center"><span class="text-xs font-mono font-bold text-emerald-400">A</span><div class="w-3 h-16 bg-gradient-to-t from-emerald-500/20 to-emerald-400 rounded-t"></div></div>
+                                <div class="flex flex-col items-center"><span class="text-xs font-mono font-bold text-blue-400">C</span><div class="w-3 h-20 bg-gradient-to-t from-blue-500/20 to-blue-400 rounded-t"></div></div>
+                                <div class="flex flex-col items-center"><span class="text-xs font-mono font-bold text-amber-400">G</span><div class="w-3 h-12 bg-gradient-to-t from-amber-500/20 to-amber-400 rounded-t"></div></div>
+                                <div class="flex flex-col items-center"><span class="text-xs font-mono font-bold text-red-400">T</span><div class="w-3 h-22 bg-gradient-to-t from-red-500/20 to-red-400 rounded-t"></div></div>
+                                <div class="flex flex-col items-center"><span class="text-xs font-mono font-bold text-emerald-400">A</span><div class="w-3 h-18 bg-gradient-to-t from-emerald-500/20 to-emerald-400 rounded-t"></div></div>
+                                <div class="flex flex-col items-center"><span class="text-xs font-mono font-bold text-blue-400">C</span><div class="w-3 h-14 bg-gradient-to-t from-blue-500/20 to-blue-400 rounded-t"></div></div>
+                            </div>
+                            
+                            <div class="p-3 bg-slate-900 rounded border border-slate-800 flex items-center justify-between text-xs font-mono">
+                                <span class="text-slate-400">Base Calls:</span>
+                                <span class="text-teal-300 font-bold tracking-widest text-sm">A - C - G - T - A - C</span>
+                            </div>
+                        </div>
+                    `;
+                    break;
+
+                default:
+                    simTitle.innerHTML = '<i class="fa-solid fa-flask-vial text-teal-400"></i> Practical Interactive Bench';
+                    simSub.innerText = 'Interactive simulation model configured for this experiment.';
+                    container.innerHTML = `
+                        <div class="text-center space-y-3">
+                            <div class="w-12 h-12 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center mx-auto text-xl font-bold">
+                                <i class="fa-solid fa-vial"></i>
+                            </div>
+                            <div class="text-sm font-semibold text-slate-200">Interactive Simulation Active</div>
+                            <p class="text-xs text-slate-400 max-w-sm">Use this virtual workbench to verify calculations and review expected protocol parameter outputs.</p>
+                        </div>
+                    `;
+            }
+        }
+
+        /* Simulator Helper Functions */
+        function runMolarityCalc() {
+            const m = parseFloat(document.getElementById('calc-m').value) || 0;
+            const v = parseFloat(document.getElementById('calc-v').value) || 0;
+            const mw = parseFloat(document.getElementById('calc-mw').value) || 0;
+            const grams = (m * v * mw).toFixed(3);
+            document.getElementById('calc-result').innerText = `${grams} g`;
+        }
+
+        let currentPipVal = 15.5;
+        function adjPipette(delta) {
+            currentPipVal = Math.max(2.0, Math.min(20.0, currentPipVal + delta));
+            const str = currentPipVal.toFixed(1);
+            const parts = str.split('.');
+            const main = parts[0].padStart(2, '0');
+            document.getElementById('pip-d1').innerText = main[0];
+            document.getElementById('pip-d2').innerText = main[1];
+            document.getElementById('pip-d3').innerText = parts[1];
+        }
+
+        function runNanoDropSim() {
+            const a260 = parseFloat(document.getElementById('nd-a260').value) || 0;
+            const a280 = parseFloat(document.getElementById('nd-a280').value) || 0;
+            const conc = (a260 * 50).toFixed(1);
+            const ratio = a280 > 0 ? (a260 / a280).toFixed(2) : "0.00";
+            
+            document.getElementById('nd-conc').innerText = `${conc} µg/mL`;
+            const ratElem = document.getElementById('nd-ratio');
+            if (ratio >= 1.75 && ratio <= 1.90) {
+                ratElem.innerText = `${ratio} (Pure DNA)`;
+                ratElem.className = "text-xl font-bold text-emerald-400 font-mono";
+            } else {
+                ratElem.innerText = `${ratio} (Impure)`;
+                ratElem.className = "text-xl font-bold text-amber-400 font-mono";
+            }
+        }
+
+        function runGelSimulation() {
+            const band = document.getElementById('sample-band');
+            if (band) {
+                band.style.marginTop = '4.5rem';
+            }
+        }
+
+        function renderPrelabForm(practical) {
+            const container = document.getElementById('prelab-questions-list');
+            const scoreBadge = document.getElementById('prelab-score-badge');
+            const userScore = userState.prelabScores[practical.id];
+
+            if (userScore !== undefined) {
+                scoreBadge.classList.remove('hidden');
+                document.getElementById('prelab-score-val').innerText = userScore;
+            } else {
+                scoreBadge.classList.add('hidden');
+            }
+
+            container.innerHTML = practical.prelab.map((q, idx) => `
+                <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3 text-xs">
+                    <div class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center text-xs">Q${idx + 1}</span>
+                        ${q.question}
+                    </div>
+                    <div class="space-y-2 pt-2">
+                        ${q.options.map((opt, optIdx) => `
+                            <label class="flex items-center space-x-3 p-2.5 rounded-lg border border-slate-800 bg-slate-950/40 hover:bg-slate-800/40 cursor-pointer transition">
+                                <input type="radio" name="${q.id}" value="${optIdx}" class="text-teal-500 focus:ring-0">
+                                <span class="text-slate-300">${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function submitPrelabQuiz() {
+            const practical = PRACTICALS_DATA.find(p => p.id === activePracticalId);
+            if (!practical) return;
+
+            let correctCount = 0;
+            practical.prelab.forEach(q => {
+                const selected = document.querySelector(`input[name="${q.id}"]:checked`);
+                if (selected && parseInt(selected.value) === q.correct) {
+                    correctCount++;
+                }
+            });
+
+            const finalScore = Math.round((correctCount / practical.prelab.length) * 100);
+            userState.prelabScores[activePracticalId] = finalScore;
+            
+            // Auto mark as completed if score >= 50%
+            if (finalScore >= 50) {
+                userState.completedPracticals[activePracticalId] = true;
+            }
+
+            saveStateToLocalStorage();
+            updateGlobalProgress();
+            renderPracticalList(document.getElementById('search-input').value);
+            renderPrelabForm(practical);
+            updateCompletionButtonUI();
+
+            alert(`Pre-Lab Quiz Submitted!\nYour Score: ${finalScore}% (${correctCount}/${practical.prelab.length} Correct)`);
+        }
+
+        function renderPostlabForm(practical) {
+            const container = document.getElementById('postlab-questions-list');
+            const badge = document.getElementById('postlab-status-badge');
+            const existingSub = userState.postlabSubmissions[practical.id];
+
+            if (existingSub) {
+                badge.innerText = `Status: Submitted (${existingSub.date})`;
+                badge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+            } else {
+                badge.innerText = "Status: Not Submitted";
+                badge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700";
+            }
+
+            container.innerHTML = practical.postlab.map((q, idx) => {
+                const val = (existingSub && existingSub.answers && existingSub.answers[q.id]) || '';
+                return `
+                    <div class="p-5 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3 text-xs">
+                        <div class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center text-xs">P${idx + 1}</span>
+                            ${q.question}
+                        </div>
+                        <textarea id="ans_${q.id}" rows="4" placeholder="${q.placeholder}" 
+                                  class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-200 text-xs focus:outline-none focus:border-teal-500 custom-scrollbar">${val}</textarea>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function submitPostLabReport() {
+            const practical = PRACTICALS_DATA.find(p => p.id === activePracticalId);
+            if (!practical) return;
+
+            const answers = {};
+            practical.postlab.forEach(q => {
+                const elem = document.getElementById(`ans_${q.id}`);
+                if (elem) answers[q.id] = elem.value;
+            });
+
+            const dateStr = new Date().toISOString().split('T')[0];
+            userState.postlabSubmissions[activePracticalId] = {
+                answers: answers,
+                date: dateStr
+            };
+
+            userState.completedPracticals[activePracticalId] = true;
+
+            saveStateToLocalStorage();
+            updateGlobalProgress();
+            renderPracticalList(document.getElementById('search-input').value);
+            renderPostlabForm(practical);
+            updateCompletionButtonUI();
+
+            alert('Post-Lab Assessment Submitted Successfully! Saved to state roster.');
+        }
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            // Style tab buttons
+            ['tab-video', 'tab-simulation', 'tab-prelab', 'tab-postlab'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t.replace('tab-', '')}`);
+                if (t === tabId) {
+                    btn.className = "py-3 border-b-2 border-teal-500 text-teal-400 flex items-center gap-2 transition font-semibold";
+                } else {
+                    btn.className = "py-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 transition";
+                }
+            });
+        }
+
+        function setRole(role) {
+            currentRole = role;
+            const btnStu = document.getElementById('btn-mode-student');
+            const btnInst = document.getElementById('btn-mode-instructor');
+
+            if (role === 'instructor') {
+                btnInst.className = "px-3 py-1.5 rounded-md font-medium transition-all bg-teal-600 text-white shadow";
+                btnStu.className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition-all";
+                openInstructorModal();
+            } else {
+                btnStu.className = "px-3 py-1.5 rounded-md font-medium transition-all bg-teal-600 text-white shadow";
+                btnInst.className = "px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition-all";
+            }
+        }
+
+        function updateCompletionButtonUI() {
+            const isCompleted = !!userState.completedPracticals[activePracticalId];
+            const icon = document.getElementById('completion-icon');
+            const label = document.getElementById('completion-label');
+
+            if (isCompleted) {
+                icon.className = "fa-solid fa-circle-check text-emerald-400";
+                label.innerText = "Completed";
+            } else {
+                icon.className = "fa-regular fa-circle text-slate-400";
+                label.innerText = "Mark Completed";
+            }
+        }
+
+        function togglePracticalCompletion() {
+            userState.completedPracticals[activePracticalId] = !userState.completedPracticals[activePracticalId];
+            saveStateToLocalStorage();
+            updateGlobalProgress();
+            renderPracticalList(document.getElementById('search-input').value);
+            updateCompletionButtonUI();
+        }
+
+        function updateGlobalProgress() {
+            const completedCount = Object.keys(userState.completedPracticals).filter(k => userState.completedPracticals[k]).length;
+            const pct = Math.round((completedCount / 10) * 100);
+            document.getElementById('global-progress-text').innerText = `${completedCount} / 10 Completed`;
+            document.getElementById('global-progress-bar').style.width = `${pct}%`;
+        }
+
+        function resetAllProgress() {
+            if (confirm("Are you sure you want to reset all quiz scores and submission progress?")) {
+                userState = {
+                    completedPracticals: {},
+                    prelabScores: {},
+                    postlabSubmissions: {},
+                    notebookEntries: {},
+                    customVideoUrls: {},
+                    customNotes: {}
+                };
+                saveStateToLocalStorage();
+                updateGlobalProgress();
+                renderPracticalList();
+                loadPracticalContent(activePracticalId);
+            }
+        }
+
+        function openInstructorModal() {
+            const modal = document.getElementById('instructor-modal');
+            modal.classList.remove('hidden');
+
+            // Populate practical selector
+            const select = document.getElementById('inst-practical-select');
+            select.innerHTML = PRACTICALS_DATA.map(p => `
+                <option value="${p.id}">Practical ${p.id}: ${p.title.split(':')[1] || p.title}</option>
+            `).join('');
+
+            select.value = activePracticalId;
+            loadInstructorPracticalData();
+            renderInstructorSubmissionTable();
+        }
+
+        function closeInstructorModal() {
+            document.getElementById('instructor-modal').classList.add('hidden');
+        }
+
+        function loadInstructorPracticalData() {
+            const id = parseInt(document.getElementById('inst-practical-select').value);
+            const practical = PRACTICALS_DATA.find(p => p.id === id);
+            if (!practical) return;
+
+            document.getElementById('inst-video-url').value = userState.customVideoUrls[id] || practical.videoUrl;
+            document.getElementById('inst-note-input').value = userState.customNotes[id] || practical.instructorNote;
+        }
+
+        function saveInstructorVideoConfig() {
+            const id = parseInt(document.getElementById('inst-practical-select').value);
+            const url = document.getElementById('inst-video-url').value;
+            const note = document.getElementById('inst-note-input').value;
+
+            userState.customVideoUrls[id] = url;
+            userState.customNotes[id] = note;
+
+            saveStateToLocalStorage();
+            if (id === activePracticalId) {
+                loadPracticalContent(id);
+            }
+            alert(`Practical ${id} video & announcement updated!`);
+        }
+
+        function renderInstructorSubmissionTable() {
+            const tbody = document.getElementById('inst-submission-rows');
+            tbody.innerHTML = PRACTICALS_DATA.map(p => {
+                const score = userState.prelabScores[p.id];
+                const sub = userState.postlabSubmissions[p.id];
+
+                return `
+                    <tr>
+                        <td class="p-3 font-medium text-slate-200">Practical ${p.id}: ${p.title.split(':')[1] || p.title}</td>
+                        <td class="p-3 font-mono">${score !== undefined ? `<span class="text-teal-400 font-bold">${score}%</span>` : '<span class="text-slate-500">Pending</span>'}</td>
+                        <td class="p-3">${sub ? `<span class="text-emerald-400">Submitted</span>` : '<span class="text-slate-500">Not Submitted</span>'}</td>
+                        <td class="p-3 text-slate-400 font-mono text-[11px]">${sub ? sub.date : '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function exportGradeRoster() {
+            let csv = "Practical ID,Title,Pre-Lab Grade (%),Post-Lab Status,Submission Date\n";
+            PRACTICALS_DATA.forEach(p => {
+                const score = userState.prelabScores[p.id] !== undefined ? userState.prelabScores[p.id] : "N/A";
+                const sub = userState.postlabSubmissions[p.id];
+                const status = sub ? "Submitted" : "Pending";
+                const date = sub ? sub.date : "N/A";
+                csv += `"${p.id}","${p.title.replace(/"/g, '""')}","${score}","${status}","${date}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `molecular_lab_grade_roster_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function openNotebookModal() {
+            const modal = document.getElementById('notebook-modal');
+            modal.classList.remove('hidden');
+
+            const practical = PRACTICALS_DATA.find(p => p.id === activePracticalId);
+            document.getElementById('nb-active-practical-title').innerText = practical ? practical.title : `Practical ${activePracticalId}`;
+
+            const entry = userState.notebookEntries[activePracticalId] || '';
+            const textarea = document.getElementById('notebook-textarea');
+            textarea.value = entry;
+            updateNotebookWordCount(entry);
+        }
+
+        function closeNotebookModal() {
+            document.getElementById('notebook-modal').classList.add('hidden');
+        }
+
+        function saveCurrentNotebookEntry() {
+            const textarea = document.getElementById('notebook-textarea');
+            userState.notebookEntries[activePracticalId] = textarea.value;
+            saveStateToLocalStorage();
+            updateNotebookWordCount(textarea.value);
+        }
+
+        function updateNotebookWordCount(text) {
+            const count = text.trim() ? text.trim().split(/\s+/).length : 0;
+            document.getElementById('nb-word-count').innerText = `${count} words`;
+        }
+
+        function saveNotebookHeader() {
+            saveStateToLocalStorage();
+        }
+    </script>
+</body>
+</html>
